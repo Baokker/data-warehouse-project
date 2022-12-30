@@ -1,0 +1,6 @@
+[submodule "data-warehouse-frontend"]
+	path = data-warehouse-frontend
+	url = git@github.com:Baokker/data-warehouse-frontend.git
+[submodule "data-warehouse-backend"]
+	path = data-warehouse-backend
+	url = git@github.com:Gxyrious/data-warehouse-backend.git
