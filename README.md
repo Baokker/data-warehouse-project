@@ -12,6 +12,7 @@
 ├── data-process # 爬虫 pandas数据混乱（较为混乱）
 ├── data-warehouse-backend # 项目后端（flask）
 ├── data-warehouse-frontend # 项目前端（仿照vue-admin-template）
+├── docker-hadoop-workbench # Spark分布式配置
 ├── 数据仓库项目报告.assets # 图片
 ├── 数据存储设计说明.assets # 图片
 ├── 数据仓库项目报告.md # 两份报告
