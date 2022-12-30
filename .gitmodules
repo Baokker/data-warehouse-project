@@ -4,3 +4,6 @@
 [submodule "data-warehouse-backend"]
 	path = data-warehouse-backend
 	url = git@github.com:Gxyrious/data-warehouse-backend.git
+[submodule "docker-hadoop-workbench"]
+	path = docker-hadoop-workbench
+	url = git@github.com:Baokker/docker-hadoop-workbench.git
