@@ -1,0 +1,92 @@
+import scrapy
+import pandas as pd
+
+
+class PrimeSpider(scrapy.Spider):
+    name = "prime"
+
+    def start_requests(self):
+        # 获取未提取到标题的电影的ASIN
+        p = pd.read_csv("../Data/unextract_title_movie_id.csv")
+        movie_id = list(p['ASIN'])
+
+        # 转成对应的本地地址
+        import os
+        relative_path = "../FilmInfoSpider/WebPages/"
+        absolute_path = os.path.abspath(relative_path)
+        urls =["file://" + absolute_path + '/' + i + ".html" for i in movie_id]
+
+        # 发送请求
+        i = 1
+        for url in urls:
+            print("第" + str(i) + "条请求")
+            i += 1
+            yield scrapy.Request(url=url, callback=self.parse)
+    
+    def parse(self, response):
+        # 初始化yield返回数据
+        attributes = {'ASIN':'','Title':'','Language':'','Release date':'','Date First Available':'','Run time':'','Producers':'','Directors':'','Writers':'','Actors':'','Media Format':'','Subtitles':'', 'Genres':''}
+        
+        # 确定ASIN值
+        asin_begin_position = -15
+        asin_length = 10
+        attributes['ASIN'] = response.url[asin_begin_position:asin_begin_position + asin_length]
+        
+        # 判断类别
+        product_type = response.xpath('//*[@id="nav-search-label-id"]/text()').get()
+
+        # 如果都不是 直接return
+        if product_type != 'Movies & TV' and product_type != 'Prime Video':
+            return 
+
+        # 不写入文件
+
+        # Movies & TV
+        if product_type == 'Movies & TV':
+            # 获取标题
+            Title = response.xpath('//*[@id="a-page"]/div[2]/div[4]/div/div/div[2]/div[2]/div/h1/text()').get()
+            attributes['Title'] = Title
+
+            # 获取Product details
+            result = response.xpath('//*[@id="detailBullets_feature_div"]/ul/li/span/span/text()').getall()
+            result = [r.replace(':','').replace('\u200f','').replace('\u200e','').replace('\t', '').replace('\n', '').replace('\r', '').strip() for r in result]
+            
+            columns = result[0::2]
+            value = result[1::2]
+
+            for i in range(len(columns)):
+                for key in attributes.keys():
+                    if columns[i] in key:
+                        attributes[key] = value[i]
+
+        # Prime Video
+        elif product_type == 'Prime Video':
+            # 是否为电影
+            if '"titleType":"movie"' not in response.xpath('//*[@id="a-page"]/div[2]/script[15]/text()').get():
+                return
+
+            # Title = response.xpath('//*[@id="a-page"]/div[2]/div[4]/div/div/div[2]/div[3]/div/h1/text()').get()
+            Title = response.xpath('//*[@id="a-page"]/div[2]/div[4]/div/div/div[2]/div[2]/div/h1/text()').get()
+            if Title == None:
+                Title = response.xpath('//*[@id="a-page"]/div[2]/div[4]/div/div/div[2]/div[1]/div/h1/text()').get()
+
+            attributes['Title'] = Title
+
+            columns_1 = response.xpath('//*[@id="btf-product-details"]/div/dl/dt/span/text()').getall()
+            value_1 = response.xpath('//*[@id="btf-product-details"]/div/dl/dd/*/text()').getall()
+
+            for i in range(len(columns_1)):
+                for key in attributes.keys():
+                    if columns_1[i] in key:
+                        attributes[key] = value_1[i]
+
+            columns_2 = response.xpath('//*[@id="meta-info"]/div/dl/dt/span/text()').getall()
+            for i in range(len(columns_2)):
+                # 根据columns内容判断
+                if columns_2[i] == 'Directors' or columns_2[i] == 'Genres':
+                    attributes[columns_2[i]] = response.xpath('//*[@id="meta-info"]/div/dl[' + str(i + 1) + ']/dd/a/text()').get()
+                elif columns_2[i] == 'Starring':
+                    attributes['Actors'] = str(response.xpath('//*[@id="meta-info"]/div/dl[' + str(i + 1) + ']/dd/a/text()').getall())[1:-2].replace("'",'')
+        
+        yield attributes
+        
